@@ -5,7 +5,10 @@ const ejs = require('ejs');
 const port = 4000
 const http = require('http');
 const bodyParser = require('body-parser');
-app.set('view engine','ejs')
+app.set('view engine','ejs');
+const fs = require('fs');
+const path = require('path');
+require('dotenv/config');
  app.use(bodyParser.urlencoded({    
   extended: true
 }));
@@ -48,12 +51,65 @@ const signUpSchema = new mongoose.Schema({
   },
   phonenumber :{
     type:Number
+  },
+  image :{
+   type :String
   }
 });
  const SignUp = mongoose.model('SignUps',signUpSchema); 
+ const multer = require('multer');
+ 
+/*const storage = multer.diskStorage({
+	 
+    destination: (req, file, cb) => {
+    	 
+        cb(null, 'images')
+    },
+    filename: (req, file, cb) => {
+        cb(null,  Date.now()+ '.jpeg ')
+       
+    };
+    console.log('..............4');
+});*/
+ 
 
-  app.post('/myhomework',async (req,res)=>{
-  
+
+const imageStorage = multer.diskStorage({
+    // Destination to store image     
+    destination: 'images', 
+      filename: (req, file, cb) => {
+          cb(null, file.fieldname + '_' + Date.now() 
+             + path.extname(file.originalname))
+            // file.fieldname is name of the field (image)
+            // path.extname get the uploaded file extension
+    }
+});
+
+
+//const upload = multer({ storage });
+const imageUpload = multer({
+      storage: imageStorage,
+      limits: {
+        fileSize: 1000000 // 1000000 Bytes = 1 MB
+      },
+      fileFilter(req, file, cb) {
+        if (!file.originalname.match(/\.(png|jpg|jpeg)$/)) { 
+           // upload only png and jpg format
+           return cb(new Error('Please upload a Image'))
+         }
+       cb(undefined, true)
+    }
+}) ;
+
+app.post('/uploadImage', imageUpload.single('image'), (req, res) => {
+     res.send(req.file)
+}, (error, req, res, next) => {
+     res.status(400).send({ error: error.message })
+})
+
+/*//const  imgModel = require('./images');
+app.post('/myhomework',imageUpload.single('image'),async (req,res)=>{
+  console.log('..............5');
   const myinfo = new SignUp(req.body);
   await myinfo.save().then(item=>{
     console.log('done')
@@ -62,13 +118,15 @@ const signUpSchema = new mongoose.Schema({
 //   requestedAt : req.requestTime,
    results :myinfo.length,
    data:{ 
-      myinfo :myinfo
+      myinfo :myinfo,
+    
    }
     })
   }).catch(err=>{
     res.status(400).send("unable to save to database")})
 
-});
+});*/
+
 app.get('/myhome',async (req ,res)=>{/// tjib data mnel database men wara l server
   const sign =await SignUp.find();
   
